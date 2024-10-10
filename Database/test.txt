@@ -1,0 +1,41 @@
+from fastapi import FastAPI
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from databases import Database
+
+DATABASE_URL = "mysql+pymysql://root:12345@localhost/real_estate"
+
+database = Database(DATABASE_URL)
+metadata = MetaData()
+
+# Define a sample table
+users = Table(
+    "users",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("username", String(45)),
+    Column("password", String(45)),
+    Column("active", Integer),
+)
+
+# SQLAlchemy specific code
+engine = create_engine(DATABASE_URL)
+metadata.create_all(engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+app = FastAPI()
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
+@app.get("/")
+async def read_root():
+    query = users.select()
+    results = await database.fetch_all(query)
+    return results
