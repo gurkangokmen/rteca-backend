@@ -3,8 +3,10 @@ from Database.Connection import database
 from DAO.PostsRepository import PostsRepository
 from Model.PostCreateRequest import PostCreateRequest
 from Model.LikeCreateRequest import LikeCreateRequest
+from Model.PostUpdateRequest import PostUpdateRequest
 from uuid import UUID, uuid4
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime
 
 app = FastAPI()
 posts_repository = PostsRepository()
@@ -27,7 +29,7 @@ async def shutdown():
     await database.disconnect()
 
 @app.get("/posts")
-async def read_root():
+async def read_posts():
     query = posts_repository.get_all_posts()
     results = await database.fetch_all(query)
     return results
@@ -42,7 +44,7 @@ async def read_post(post_id: UUID):
 async def create_post(request: PostCreateRequest):
     new_id = str(uuid4())
 
-    query = await posts_repository.create_post(id=new_id, user_id=request.user_id, content=request.content)
+    query = await posts_repository.create_post(id=new_id, user_id=request.user_id, content=request.content, date=request.date)
     await database.execute(query)
 
     # Fetch the created post
@@ -51,10 +53,14 @@ async def create_post(request: PostCreateRequest):
 
     return created_post
 
-@app.put("/posts/{post_id}")
-async def update_post(post_id: int, content: str):
-    query = posts_repository.update_post(post_id, content)
-    return await database.execute(query)
+@app.put("/posts")
+async def update_post(request: PostUpdateRequest):
+    query = posts_repository.update_post(post_id=request.post_id, content=request.content, date=request.date)
+    await database.execute(query)
+
+    query = posts_repository.get_post_by_id(request.post_id)
+    result = await database.fetch_one(query)
+    return result
 
 @app.delete("/posts/{post_id}")
 async def delete_post(post_id: UUID):

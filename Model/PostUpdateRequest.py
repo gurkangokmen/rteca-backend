@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from uuid import UUID
 
-class PostCreateRequest(BaseModel):
-    user_id: UUID
+class PostUpdateRequest(BaseModel):
+    post_id: UUID
     content: str
     date : str
