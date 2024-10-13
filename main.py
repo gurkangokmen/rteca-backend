@@ -67,8 +67,13 @@ async def delete_post(post_id: UUID):
     query = like_repository.remove_like_2(post_id)
     await database.execute(query)
 
+    query = comment_repository.delete_commnets_by_post_id(post_id)
+    await database.execute(query)
+
     query = posts_repository.delete_post(post_id)
     await database.execute(query)
+
+    
 
     return {"message": "Post deleted successfully"}
 
@@ -128,3 +133,26 @@ async def remove_like(post_id: UUID, user_id: UUID):
     await database.execute(query)
 
     return {"message": "Like removed successfully"}
+
+
+
+# Comment Repository
+from DAO.CommentRepository import CommentRepository
+comment_repository = CommentRepository()
+from Model.CommentCreateRequest import CommentCreateRequest
+
+@app.get("/comments/{post_id}")
+async def comments_list(post_id: UUID):
+    query = comment_repository.get_comments_by_id(post_id=post_id)
+    results = await database.fetch_all(query)
+    return results
+
+
+@app.post("/comments")
+async def create_comment(request: CommentCreateRequest):
+    new_id = str(uuid4())
+
+    query = await comment_repository.create_comment(id=new_id, content=request.content, post_id=request.post_id, date=request.date, user_id=request.user_id)
+    await database.execute(query)
+
+    return {"id": new_id, "content": request.content, "post_id": request.post_id, "date": request.date, "user_id": request.user_id}
